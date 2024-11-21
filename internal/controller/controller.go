@@ -9,6 +9,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/skamranahmed/estimatex-server/internal/api"
+	"github.com/skamranahmed/estimatex-server/internal/entity"
 	"github.com/skamranahmed/estimatex-server/internal/session"
 )
 
@@ -16,6 +17,8 @@ var (
 	websocketUpgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool { return true },
 	}
+
+	sessionManager = session.DefaultManager
 )
 
 func ServeWS(w http.ResponseWriter, r *http.Request) {
@@ -27,15 +30,13 @@ func ServeWS(w http.ResponseWriter, r *http.Request) {
 	}
 	// connection established
 
-	fmt.Println(wsConnection.LocalAddr())
-
 	actionValue, clientName, err := validateRequest(r)
 	if err != nil {
 		api.SendErrorResponse(wsConnection, err.Error())
 		return
 	}
 
-	fmt.Println(clientName)
+	isRoomAdmin := false
 
 	if actionValue == string(session.ActionCreateRoom) {
 		maxRoomCapacityString := strings.TrimSpace(r.URL.Query().Get("max_room_capacity"))
@@ -46,14 +47,17 @@ func ServeWS(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		fmt.Println(maxRoomCapacityInteger)
+		// the client who creates the room is the room admin
+		isRoomAdmin = true
 
-		// TODO:
-		/*
-			1. Create a new room
-			2. Create a new client (i.e member)
-			3. Add the member to the room
-		*/
+		// create a new room
+		room := sessionManager.CreateRoom(maxRoomCapacityInteger)
+
+		// create a new client (i.e member)
+		member := entity.NewMember(clientName, wsConnection, room.ID, isRoomAdmin)
+
+		// add member to the room
+		room.AddMember(member)
 	}
 
 	if actionValue == string(session.ActionJoinRoom) {

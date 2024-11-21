@@ -1,5 +1,17 @@
 package session
 
+import (
+	"sync"
+	"time"
+
+	"github.com/skamranahmed/estimatex-server/internal/entity"
+	"golang.org/x/exp/rand"
+)
+
+func init() {
+	rand.Seed(uint64(time.Now().UnixNano()))
+}
+
 type Action string
 
 const (
@@ -14,4 +26,53 @@ func IsActionValid(input string) bool {
 	default:
 		return false
 	}
+}
+
+const (
+	roomIDLength = 6
+	letters      = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+)
+
+var DefaultManager = NewManager()
+
+// SessionManager: manages active rooms within a session, allowing thread-safe access and operations
+type SessionManager struct {
+	// rooms stores all active rooms in a concurrent-safe map, accessible by roomID
+	rooms sync.Map
+}
+
+func NewManager() *SessionManager {
+	sessionManager := &SessionManager{}
+	return sessionManager
+}
+
+func (s *SessionManager) CreateRoom(maxCapacity int) *entity.Room {
+	room := &entity.Room{
+		ID:          s.generateRoomID(),
+		MaxCapacity: maxCapacity,
+	}
+	s.rooms.Store(room.ID, room)
+	return room
+}
+
+func (s *SessionManager) generateRoomID() string {
+	for {
+		roomID := s.randomString(roomIDLength)
+		if !s.doesRoomAlreadyExist(string(roomID)) {
+			return roomID
+		}
+	}
+}
+
+func (m *SessionManager) randomString(length int) string {
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
+
+func (m *SessionManager) doesRoomAlreadyExist(roomID string) bool {
+	_, ok := m.rooms.Load(roomID)
+	return ok
 }
