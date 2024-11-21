@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/websocket"
@@ -34,8 +35,42 @@ func ServeWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(actionValue)
 	fmt.Println(clientName)
+
+	if actionValue == string(session.ActionCreateRoom) {
+		maxRoomCapacityString := strings.TrimSpace(r.URL.Query().Get("max_room_capacity"))
+		maxRoomCapacityInteger, err := strconv.Atoi(maxRoomCapacityString)
+		if err != nil {
+			log.Printf("[BAD_REQUEST_ERROR]: Got invalid value for max_room_capacity, error: %+v\n", err)
+			api.SendErrorResponse(wsConnection, "invalid max_room_capacity value provided")
+			return
+		}
+
+		fmt.Println(maxRoomCapacityInteger)
+
+		// TODO:
+		/*
+			1. Create a new room
+			2. Create a new client (i.e member)
+			3. Add the member to the room
+		*/
+	}
+
+	if actionValue == string(session.ActionJoinRoom) {
+		roomID := strings.TrimSpace(r.URL.Query().Get("room_id"))
+
+		fmt.Println(roomID)
+
+		// TODO:
+		/*
+			1. Check if the room with the provided roomID exists or not
+			2. If the room exists, add the member (client) to the room
+			   but if the room's max capacity has already been reached,
+			   then we must NOT add the member to the room, rather throw an error
+			3. Create a new client (i.e member)
+			4. Add the member to the room
+		*/
+	}
 
 }
 
