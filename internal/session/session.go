@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/skamranahmed/estimatex-server/internal/entity"
+	"github.com/skamranahmed/estimatex-server/internal/event"
 	"golang.org/x/exp/rand"
 )
 
@@ -48,9 +49,11 @@ func NewManager() *SessionManager {
 
 func (s *SessionManager) CreateRoom(maxCapacity int) *entity.Room {
 	room := &entity.Room{
-		ID:          s.generateRoomID(),
-		MaxCapacity: maxCapacity,
+		ID:            s.generateRoomID(),
+		MaxCapacity:   maxCapacity,
+		EventHandlers: make(map[event.EventType]entity.EventHanlder),
 	}
+	room.SetupEventHandlers()
 	s.rooms.Store(room.ID, room)
 	return room
 }

@@ -113,9 +113,16 @@ func (m *Member) ReadMessages(room *Room, doneChannel chan bool) {
 				return
 			}
 
-			log.Printf("Received Event: %+v\n", receivedEvent)
-
-			// TODO: setup the logic to handle different types of WebSocket messsages as events
+			// logic to handle different types of WebSocket messsages as events
+			err = room.HandleEvent(m, receivedEvent)
+			if err != nil {
+				log.Printf("Error while handling the received event %s", receivedEvent.Type)
+				// TODO:
+				// Think: do I need to return here or continue here?
+				// Do I need to inform the client that something has gone wrong on the server?
+				// Or should I simply close the connection?
+				return
+			}
 		}
 	}
 }

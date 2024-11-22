@@ -1,13 +1,44 @@
 package entity
 
-import "sync"
+import (
+	"log"
+	"sync"
+
+	"github.com/skamranahmed/estimatex-server/internal/event"
+)
+
+type EventHanlder func(member *Member, event event.Event) error
 
 type Room struct {
-	ID          string
-	MaxCapacity int
+	ID            string
+	MaxCapacity   int
+	EventHandlers map[event.EventType]EventHanlder
 
 	// Key: MemberID, Value: *Member
 	Members sync.Map
+}
+
+func (r *Room) SetupEventHandlers() {
+	// TODO: setup event handler functions
+}
+
+func (r *Room) HandleEvent(member *Member, receivedEvent event.Event) error {
+	if event.IsIncomingEventTypeValid(receivedEvent.Type) {
+		eventHandler, ok := r.EventHandlers[event.EventType(receivedEvent.Type)]
+		if ok {
+			err := eventHandler(member, receivedEvent)
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+
+		log.Printf("the handler for the %+v event is not set", receivedEvent.Type)
+		return event.EventHandlerNotSetError
+	}
+
+	log.Printf("the %+v event is not supported", receivedEvent.Type)
+	return event.EventNotSupportedError
 }
 
 func (r *Room) AddMember(member *Member) {
