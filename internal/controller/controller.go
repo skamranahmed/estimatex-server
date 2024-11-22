@@ -104,6 +104,12 @@ func ServeWS(w http.ResponseWriter, r *http.Request) {
 	// start a go routine which would write messages to the client (member)
 	go member.WriteMessages(done)
 
+	if actionValue == string(session.ActionCreateRoom) {
+		// inform the client (member) that the room has been created
+		member.SendCreateRoomEvent(room.ID)
+	}
+
+	return
 }
 
 func validateRequest(r *http.Request) (actionValue string, clientName string, err error) {

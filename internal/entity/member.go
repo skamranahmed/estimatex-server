@@ -113,6 +113,8 @@ func (m *Member) ReadMessages(room *Room, doneChannel chan bool) {
 				return
 			}
 
+			log.Printf("Received Event: %+v\n", receivedEvent)
+
 			// TODO: setup the logic to handle different types of WebSocket messsages as events
 		}
 	}
@@ -157,4 +159,25 @@ func (m *Member) WriteMessages(doneChannel chan bool) {
 			return
 		}
 	}
+}
+
+func (m *Member) SendCreateRoomEvent(roomID string) {
+	createRoomEvent := event.CreateRoomEventData{
+		RoomID: roomID,
+	}
+	createRoomEvenJsonData, _ := json.Marshal(createRoomEvent)
+	eventToBeSent := event.Event{
+		Type: string(event.EventCreateRoom),
+		Data: json.RawMessage(createRoomEvenJsonData),
+	}
+	m.sendEvent(eventToBeSent)
+}
+
+func (m *Member) sendEvent(eventToBeSent event.Event) {
+	jsonMessage, err := json.Marshal(eventToBeSent)
+	if err != nil {
+		log.Printf("unable to marshal message: %+v, error: %+v", eventToBeSent, err)
+	}
+
+	m.MessageChannel <- string(jsonMessage)
 }
