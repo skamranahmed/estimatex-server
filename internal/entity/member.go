@@ -2,7 +2,6 @@ package entity
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"strings"
 
@@ -40,6 +39,27 @@ func (m *Member) ReadMessages(room *Room, doneChannel chan bool) {
 	defer func() {
 		log.Println("Shutting down the read go-routine for the client: ", m.Name)
 
+		// if the connection is closed for the room admin, then
+		// all other members also need to be removed from the room
+		// also, their connection has to be closed as well
+		if m.IsRoomAdmin {
+			log.Printf("Closing the connection for the admin of room id: %+v. Disconnecting all the other members.", m.RoomID)
+
+			connectedMembers := room.GetMembers()
+
+			for _, connectedMember := range connectedMembers {
+				if connectedMember.ID != m.ID {
+					// remove the member from the room
+					room.RemoveMember(connectedMember.ID)
+
+					log.Printf("Closing connection for the client: %+v\n", connectedMember.Name)
+
+					// close the member's websocket connection
+					connectedMember.Connection.Close()
+				}
+			}
+		}
+
 		// remove the member from the room
 		room.RemoveMember(m.ID)
 
@@ -76,21 +96,6 @@ func (m *Member) ReadMessages(room *Room, doneChannel chan bool) {
 				if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
 					// respond to the client's close message
 					log.Printf("%+v initiated close for the room id: %+v\n", m.Name, m.RoomID)
-
-					// if the connection is closed by the room admin, then
-					// all other members also need to be removed from the room
-					// also, their connection has to be closed
-					if m.IsRoomAdmin {
-						log.Printf("Admin of room id: %+v, closed the connection. Disconnecting all the other members.", m.RoomID)
-						connectedMembers := room.GetMembers()
-						for _, connectedMember := range connectedMembers {
-							if connectedMember.ID != m.ID {
-								fmt.Printf("Closing connection for client: %+v\n", connectedMember.Name)
-								connectedMember.Connection.Close()
-							}
-						}
-					}
-
 					m.Connection.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Server closing connection"))
 					return
 				}
@@ -109,8 +114,6 @@ func (m *Member) ReadMessages(room *Room, doneChannel chan bool) {
 			err = json.Unmarshal(payload, &receivedEvent)
 			if err != nil {
 				log.Printf("Error unmarshalling the received event message from the client: %v", err)
-				// TODO: Think: do I need to return here or continue here?
-				// TODO: Think: if the error has happened with the admin, do I need to terminate the connection for other members too?
 				return
 			}
 
@@ -118,10 +121,7 @@ func (m *Member) ReadMessages(room *Room, doneChannel chan bool) {
 			err = room.HandleEvent(m, receivedEvent)
 			if err != nil {
 				log.Printf("Error while handling the received event %s", receivedEvent.Type)
-				// TODO:
-				// Think: do I need to return here or continue here?
-				// Do I need to inform the client that something has gone wrong on the server?
-				// Or should I simply close the connection?
+				// TODO: Do I need to inform the client that something has gone wrong on the server?
 				return
 			}
 		}
@@ -148,7 +148,7 @@ func (m *Member) WriteMessages(doneChannel chan bool) {
 
 	for {
 		select {
-		case messageToBeSentToMember, _ := <-m.MessageChannel:
+		case messageToBeSentToMember := <-m.MessageChannel:
 			err := m.Connection.WriteMessage(websocket.TextMessage, []byte(messageToBeSentToMember))
 			if err != nil {
 				log.Printf("Error while sending message to the client, error: %+v\n", err)
