@@ -28,6 +28,7 @@ const (
 	EventRoomCapacityReached EventType = "ROOM_CAPACITY_REACHED"
 	EventBeginVotingPrompt   EventType = "BEGIN_VOTING_PROMPT"
 	EventAskForVote          EventType = "ASK_FOR_VOTE"
+	EventVotingCompleted     EventType = "VOTING_COMPLETED"
 
 	// Incoming + Outgoing Events
 	EventCreateRoom EventType = "CREATE_ROOM"
@@ -76,4 +77,10 @@ type AskForVoteEventData struct {
 type MemberVotedEventData struct {
 	TicketID string `json:"ticket_id"`
 	Vote     string `json:"vote"`
+}
+
+// VotingCompletedEventData represents data specific to the "VOTING_COMPLETED" event
+type VotingCompletedEventData struct {
+	TicketID string `json:"ticket_id"`
+	Message  string `json:"message"`
 }

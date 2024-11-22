@@ -228,6 +228,18 @@ func (m *Member) SendAskForVoteEvent(ticketId string) {
 	m.sendEvent(eventToBeSent)
 }
 
+func (m *Member) SendVotingCompletedEvent(message string) {
+	votingCompletedEvent := event.VotingCompletedEventData{
+		Message: message,
+	}
+	votingCompletedEventJsonData, _ := json.Marshal(votingCompletedEvent)
+	eventToBeSent := event.Event{
+		Type: string(event.EventVotingCompleted),
+		Data: json.RawMessage(votingCompletedEventJsonData),
+	}
+	m.sendEvent(eventToBeSent)
+}
+
 func (m *Member) sendEvent(eventToBeSent event.Event) {
 	jsonMessage, err := json.Marshal(eventToBeSent)
 	if err != nil {
