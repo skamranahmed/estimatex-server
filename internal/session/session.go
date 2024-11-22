@@ -55,6 +55,14 @@ func (s *SessionManager) CreateRoom(maxCapacity int) *entity.Room {
 	return room
 }
 
+func (s *SessionManager) FindRoom(roomID string) *entity.Room {
+	room, ok := s.rooms.Load(roomID)
+	if !ok {
+		return nil
+	}
+	return room.(*entity.Room)
+}
+
 func (s *SessionManager) generateRoomID() string {
 	for {
 		roomID := s.randomString(roomIDLength)

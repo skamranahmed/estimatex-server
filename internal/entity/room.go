@@ -13,3 +13,14 @@ type Room struct {
 func (r *Room) AddMember(member *Member) {
 	r.Members.Store(member.ID, member)
 }
+
+func (r *Room) GetRoomMembersCount() int {
+	count := 0
+
+	r.Members.Range(func(key interface{}, value interface{}) bool {
+		count++
+		return true
+	})
+
+	return count
+}

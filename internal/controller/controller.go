@@ -63,17 +63,32 @@ func ServeWS(w http.ResponseWriter, r *http.Request) {
 	if actionValue == string(session.ActionJoinRoom) {
 		roomID := strings.TrimSpace(r.URL.Query().Get("room_id"))
 
-		fmt.Println(roomID)
+		// check if the room with the provided roomID exists or not
+		room := sessionManager.FindRoom(roomID)
+		if room == nil {
+			log.Printf("[BAD_REQUEST_ERROR]: Trying to join a room that doesn't exist")
+			errMessage := fmt.Sprintf("⚠️ Room id: %s does not exist. Please check the room id and try again.", roomID)
+			api.SendErrorResponse(wsConnection, errMessage)
+			return
+		}
 
-		// TODO:
 		/*
-			1. Check if the room with the provided roomID exists or not
-			2. If the room exists, add the member (client) to the room
-			   but if the room's max capacity has already been reached,
-			   then we must NOT add the member to the room, rather throw an error
-			3. Create a new client (i.e member)
-			4. Add the member to the room
+			if the room exists, add the member (client) to the room
+			but if the room's max capacity has already been reached,
+			then we must NOT add the member to the room, rather throw an error
 		*/
+		if room.GetRoomMembersCount() >= room.MaxCapacity {
+			log.Printf("[BAD_REQUEST_ERROR]: Trying to join a room that is already at maximum capacity")
+			errMessage := fmt.Sprintf("😢 Room %s is full. You cannot join. Please try again later or choose a different room.", roomID)
+			api.SendErrorResponse(wsConnection, errMessage)
+			return
+		}
+
+		// create a new client (i.e member)
+		member := entity.NewMember(clientName, wsConnection, roomID, isRoomAdmin)
+
+		// add member to the room
+		room.AddMember(member)
 	}
 
 }
