@@ -267,6 +267,18 @@ func (m *Member) SendVotesRevealedEvent(ticketId string, memberVoteMap map[strin
 	m.sendEvent(eventToBeSent)
 }
 
+func (m *Member) SendAwaitingAdminVoteStartEvent(message string) {
+	awaitingAdminVoteStartEvent := event.AwaitingAdminVoteStartEventData{
+		Message: message,
+	}
+	awaitingAdminVoteStartEventJsonData, _ := json.Marshal(awaitingAdminVoteStartEvent)
+	eventToBeSent := event.Event{
+		Type: string(event.EventAwaitingAdminVoteStart),
+		Data: json.RawMessage(awaitingAdminVoteStartEventJsonData),
+	}
+	m.sendEvent(eventToBeSent)
+}
+
 func (m *Member) sendEvent(eventToBeSent event.Event) {
 	jsonMessage, err := json.Marshal(eventToBeSent)
 	if err != nil {

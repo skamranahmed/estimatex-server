@@ -25,13 +25,14 @@ const (
 	EventRevealVotes EventType = "REVEAL_VOTES"
 
 	// Outgoing Events
-	EventRoomJoinUpdates     EventType = "ROOM_JOIN_UPDATES"
-	EventRoomCapacityReached EventType = "ROOM_CAPACITY_REACHED"
-	EventBeginVotingPrompt   EventType = "BEGIN_VOTING_PROMPT"
-	EventAskForVote          EventType = "ASK_FOR_VOTE"
-	EventVotingCompleted     EventType = "VOTING_COMPLETED"
-	EventRevealVotesPrompt   EventType = "REVEAL_VOTES_PROMPT"
-	EventVotesRevealed       EventType = "VOTES_REVEALED"
+	EventRoomJoinUpdates        EventType = "ROOM_JOIN_UPDATES"
+	EventRoomCapacityReached    EventType = "ROOM_CAPACITY_REACHED"
+	EventBeginVotingPrompt      EventType = "BEGIN_VOTING_PROMPT"
+	EventAskForVote             EventType = "ASK_FOR_VOTE"
+	EventVotingCompleted        EventType = "VOTING_COMPLETED"
+	EventRevealVotesPrompt      EventType = "REVEAL_VOTES_PROMPT"
+	EventVotesRevealed          EventType = "VOTES_REVEALED"
+	EventAwaitingAdminVoteStart EventType = "AWAITING_ADMIN_VOTE_START"
 
 	// Incoming + Outgoing Events
 	EventCreateRoom EventType = "CREATE_ROOM"
@@ -103,4 +104,9 @@ type RevealVotesEventData struct {
 type VotesRevealedEventData struct {
 	TicketID            string                 `json:"ticket_id"`
 	MemberVoteChoiceMap map[string]interface{} `json:"client_vote_choice_map"`
+}
+
+// AwaitingAdminVoteStartEventData represents data specific to the "AWAITING_ADMIN_VOTE_START" event
+type AwaitingAdminVoteStartEventData struct {
+	Message string `json:"message"`
 }

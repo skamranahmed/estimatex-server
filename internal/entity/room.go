@@ -170,8 +170,11 @@ func (r *Room) RevealVotesEventHandler(member *Member, receivedEvent event.Event
 			memberInRoom.SendBeginVotingPromptEvent("📝 Enter the ticket id for which you want to start voting next:")
 			continue
 		}
+
 		memberInRoom.SendVotesRevealedEvent(revealVotesEventData.TicketID, memberVotesMapInterface)
-		// TODO: send message to the member that they need to wait for the admin to begin voting for the next ticket
+
+		// also send message to the member that they need to wait for the admin to begin voting for the next ticket
+		memberInRoom.SendAwaitingAdminVoteStartEvent("⏳ Waiting for the admin to begin voting for next ticket")
 	}
 
 	// delete the TicketID entry from the TicketVotesMap
