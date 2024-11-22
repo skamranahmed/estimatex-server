@@ -101,7 +101,8 @@ func ServeWS(w http.ResponseWriter, r *http.Request) {
 	// start a go routine which would continuously read messages from the client (member)
 	go member.ReadMessages(room, done)
 
-	// TODO: start a go routine which would write messages to the client (member)
+	// start a go routine which would write messages to the client (member)
+	go member.WriteMessages(done)
 
 }
 

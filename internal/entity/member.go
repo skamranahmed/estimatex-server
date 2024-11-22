@@ -12,21 +12,23 @@ import (
 )
 
 type Member struct {
-	ID          string
-	Name        string
-	Connection  *websocket.Conn
-	RoomID      string
-	IsRoomAdmin bool
+	ID             string
+	Name           string
+	Connection     *websocket.Conn
+	RoomID         string
+	IsRoomAdmin    bool
+	MessageChannel chan string
 }
 
 // NewMember: creates a new member with a unique ID
 func NewMember(memberName string, memberWebSocketConnection *websocket.Conn, roomID string, isRoomAdmin bool) *Member {
 	return &Member{
-		ID:          uuid.New().String(),
-		Name:        memberName,
-		Connection:  memberWebSocketConnection,
-		RoomID:      roomID,
-		IsRoomAdmin: isRoomAdmin,
+		ID:             uuid.New().String(),
+		Name:           memberName,
+		Connection:     memberWebSocketConnection,
+		RoomID:         roomID,
+		IsRoomAdmin:    isRoomAdmin,
+		MessageChannel: make(chan string),
 	}
 }
 
@@ -36,20 +38,20 @@ func (m *Member) ReadMessages(room *Room, doneChannel chan bool) {
 	log.Println("Starting a go-routine to read messages from the client: ", m.Name)
 
 	defer func() {
+		log.Println("Shutting down the read go-routine for the client: ", m.Name)
+
 		// remove the member from the room
 		room.RemoveMember(m.ID)
 
 		// close the member's websocket connection
 		m.Connection.Close()
 
-		log.Printf("Read go-routine for client %s shutting down", m.Name)
-
 		select {
 		case <-doneChannel:
 			// doneChannel already closed, do nothing
 			return
 		default:
-			// the doneChannel is open, close it so that it can notify the writing go routine
+			// the doneChannel is open, close it so that it can notify the `WriteMessages` method that is running as a go-routine
 			close(doneChannel)
 		}
 	}()
@@ -59,7 +61,11 @@ func (m *Member) ReadMessages(room *Room, doneChannel chan bool) {
 		select {
 		case <-doneChannel:
 			/*
-				exit the loop if the done channel is closed (indicating that the websocket connection is closed)
+				Exit the loop if the done channel is closed (indicating that the websocket connection is closed).
+				This signal is being read because the `WriteMessages` method which is running in another go-routine
+				will close the `doneChannel` channel once the connection is broken, and once that happens, we also
+				need to stop the `ReadMessages` method which is also running as a go-routine. If the `ReadMessages`
+				go-routine is not exited, then it will lead to a go-routine leak.
 			*/
 			return
 
@@ -108,6 +114,47 @@ func (m *Member) ReadMessages(room *Room, doneChannel chan bool) {
 			}
 
 			// TODO: setup the logic to handle different types of WebSocket messsages as events
+		}
+	}
+}
+
+// WriteMessages: sends messages to the WebSocket connection.
+// It is a blocking operation, hence it must be run as a go routine.
+func (m *Member) WriteMessages(doneChannel chan bool) {
+	log.Println("Starting a go-routine to write messages to the client: ", m.Name)
+
+	defer func() {
+		log.Println("Shutting down the write go-routine for the client: ", m.Name)
+
+		select {
+		case <-doneChannel:
+			// doneChannel already closed, do nothing
+			return
+		default:
+			// the doneChannel is open, close it so that it can notify the `ReadMessages` method which is running as a go-routine
+			close(doneChannel)
+		}
+	}()
+
+	for {
+		select {
+		case messageToBeSentToMember, _ := <-m.MessageChannel:
+			err := m.Connection.WriteMessage(websocket.TextMessage, []byte(messageToBeSentToMember))
+			if err != nil {
+				log.Printf("Error while sending message to the client, error: %+v\n", err)
+				// in case of an error, make an early return and close the connection
+				return
+			}
+
+		case <-doneChannel:
+			/*
+				Exit the loop if the done channel is closed (indicating that the websocket connection is closed).
+				This signal is being read because the `ReadMessages` method which is running in another go-routine
+				will close the `doneChannel` channel once the connection is broken, and once that happens, we also
+				need to stop the `WriteMessages` method which is also running as a go-routine. If the `WriteMessages`
+				go-routine is not exited, then it will lead to a go-routine leak.
+			*/
+			return
 		}
 	}
 }
