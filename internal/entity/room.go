@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
@@ -21,6 +22,7 @@ type Room struct {
 
 func (r *Room) SetupEventHandlers() {
 	r.EventHandlers[event.EventJoinRoom] = r.JoinRoomEventHandler
+	r.EventHandlers[event.EventBeginVoting] = r.BeginVotingEventHandler
 }
 
 func (r *Room) JoinRoomEventHandler(member *Member, receivedEvent event.Event) error {
@@ -80,6 +82,23 @@ func (r *Room) JoinRoomEventHandler(member *Member, receivedEvent event.Event) e
 			}
 			member.SendRoomCapacityReachedEvent("🟢 Room capacity reached. Waiting for the admin to begin voting.")
 		}
+	}
+
+	return nil
+}
+
+func (r *Room) BeginVotingEventHandler(member *Member, receivedEvent event.Event) error {
+	var beginVotingEventData event.BeginVotingEventData
+	err := json.Unmarshal(receivedEvent.Data, &beginVotingEventData)
+	if err != nil {
+		log.Printf("unable to handle %+v event\n", receivedEvent.Type)
+		return err
+	}
+
+	// we got the ticket id for which the admin wants to begin voting
+	// now, we need to send a broadcast message to everyone in the room to ask for their vote
+	for _, member := range r.GetMembers() {
+		member.SendAskForVoteEvent(beginVotingEventData.TicketID)
 	}
 
 	return nil
