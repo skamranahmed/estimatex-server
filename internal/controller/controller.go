@@ -36,6 +36,13 @@ func ServeWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// the `done` channel is used for the communication between the websocket reading and websocket writing goroutine
+	// and to coordinate the termination of each other
+	done := make(chan bool)
+
+	var member *entity.Member
+	var room *entity.Room
+
 	isRoomAdmin := false
 
 	if actionValue == string(session.ActionCreateRoom) {
@@ -51,10 +58,10 @@ func ServeWS(w http.ResponseWriter, r *http.Request) {
 		isRoomAdmin = true
 
 		// create a new room
-		room := sessionManager.CreateRoom(maxRoomCapacityInteger)
+		room = sessionManager.CreateRoom(maxRoomCapacityInteger)
 
 		// create a new client (i.e member)
-		member := entity.NewMember(clientName, wsConnection, room.ID, isRoomAdmin)
+		member = entity.NewMember(clientName, wsConnection, room.ID, isRoomAdmin)
 
 		// add member to the room
 		room.AddMember(member)
@@ -64,7 +71,7 @@ func ServeWS(w http.ResponseWriter, r *http.Request) {
 		roomID := strings.TrimSpace(r.URL.Query().Get("room_id"))
 
 		// check if the room with the provided roomID exists or not
-		room := sessionManager.FindRoom(roomID)
+		room = sessionManager.FindRoom(roomID)
 		if room == nil {
 			log.Printf("[BAD_REQUEST_ERROR]: Trying to join a room that doesn't exist")
 			errMessage := fmt.Sprintf("⚠️ Room id: %s does not exist. Please check the room id and try again.", roomID)
@@ -85,11 +92,16 @@ func ServeWS(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// create a new client (i.e member)
-		member := entity.NewMember(clientName, wsConnection, roomID, isRoomAdmin)
+		member = entity.NewMember(clientName, wsConnection, roomID, isRoomAdmin)
 
 		// add member to the room
 		room.AddMember(member)
 	}
+
+	// start a go routine which would continuously read messages from the client (member)
+	go member.ReadMessages(room, done)
+
+	// TODO: start a go routine which would write messages to the client (member)
 
 }
 
