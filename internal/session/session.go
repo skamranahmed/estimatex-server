@@ -49,9 +49,11 @@ func NewManager() *SessionManager {
 
 func (s *SessionManager) CreateRoom(maxCapacity int) *entity.Room {
 	room := &entity.Room{
-		ID:            s.generateRoomID(),
-		MaxCapacity:   maxCapacity,
-		EventHandlers: make(map[event.EventType]entity.EventHanlder),
+		ID:             s.generateRoomID(),
+		MaxCapacity:    maxCapacity,
+		EventHandlers:  make(map[event.EventType]entity.EventHanlder),
+		TicketVotesMap: make(map[string][]*entity.Vote),
+		MemberVoteMap:  make(map[string]*entity.Vote),
 	}
 	room.SetupEventHandlers()
 	s.rooms.Store(room.ID, room)

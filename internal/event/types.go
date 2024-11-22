@@ -21,6 +21,7 @@ const (
 	// Incoming Events
 	EventJoinRoom    EventType = "JOIN_ROOM"
 	EventBeginVoting EventType = "BEGIN_VOTING"
+	EventMemberVoted EventType = "MEMBER_VOTED"
 
 	// Outgoing Events
 	EventRoomJoinUpdates     EventType = "ROOM_JOIN_UPDATES"
@@ -34,7 +35,7 @@ const (
 
 func IsIncomingEventTypeValid(input string) bool {
 	switch EventType(input) {
-	case EventCreateRoom, EventJoinRoom, EventBeginVoting:
+	case EventCreateRoom, EventJoinRoom, EventBeginVoting, EventMemberVoted:
 		return true
 	default:
 		return false
@@ -69,4 +70,10 @@ type BeginVotingEventData struct {
 // AskForVoteEventData represents data specific to the "ASK_FOR_VOTE" event
 type AskForVoteEventData struct {
 	TicketID string `json:"ticket_id"`
+}
+
+// MemberVotedEventData represents data specific to the "MEMBER_VOTED" event
+type MemberVotedEventData struct {
+	TicketID string `json:"ticket_id"`
+	Vote     string `json:"vote"`
 }

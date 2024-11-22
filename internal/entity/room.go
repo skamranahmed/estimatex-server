@@ -18,11 +18,19 @@ type Room struct {
 
 	// Key: MemberID, Value: *Member
 	Members sync.Map
+
+	// Key: TicketID, Value: slice of Vote
+	TicketVotesMap      map[string][]*Vote
+	TicketVotesMapMutex sync.Mutex
+
+	// Key: MemberID, Value: Vote
+	MemberVoteMap map[string]*Vote
 }
 
 func (r *Room) SetupEventHandlers() {
 	r.EventHandlers[event.EventJoinRoom] = r.JoinRoomEventHandler
 	r.EventHandlers[event.EventBeginVoting] = r.BeginVotingEventHandler
+	r.EventHandlers[event.EventMemberVoted] = r.MemberVotedEventHandler
 }
 
 func (r *Room) JoinRoomEventHandler(member *Member, receivedEvent event.Event) error {
@@ -104,6 +112,42 @@ func (r *Room) BeginVotingEventHandler(member *Member, receivedEvent event.Event
 	return nil
 }
 
+func (r *Room) MemberVotedEventHandler(member *Member, receivedEvent event.Event) error {
+	var memberVotedEventData event.MemberVotedEventData
+	err := json.Unmarshal(receivedEvent.Data, &memberVotedEventData)
+	if err != nil {
+		log.Println("unable to handle MEMBER_VOTED event")
+		return err
+	}
+
+	r.SaveTicketVote(member, memberVotedEventData.TicketID, memberVotedEventData.Vote)
+
+	membersInRoom := r.GetMembers()
+
+	for _, memberInRoom := range membersInRoom {
+		memberInRoom.MessageChannel <- fmt.Sprintf("%v voted for the ticket id %v", member.Name, memberVotedEventData.TicketID)
+	}
+
+	if len(r.TicketVotesMap[memberVotedEventData.TicketID]) == r.GetRoomMembersCount() {
+		r.SaveAllMemberVotes(memberVotedEventData.TicketID)
+
+		for _, memberInRoom := range membersInRoom {
+			if memberInRoom.IsRoomAdmin {
+				messageToBeSentToAdminMember := fmt.Sprintf("✅ Voting has completed for the ticket id: %s.\n> 👉 You will be prompted to reveal the votes.", memberVotedEventData.TicketID)
+				fmt.Println(messageToBeSentToAdminMember)
+				// TODO: send voting completed event
+				// TODO: send reveal votes prompt event
+				continue
+			}
+			messageToBeSentToNonAdminMember := fmt.Sprintf("✅ Voting has completed for the ticket id: %s.\n> ⏳Waiting for the admin to reveal the votes.", memberVotedEventData.TicketID)
+			fmt.Println(messageToBeSentToNonAdminMember)
+			// TODO: send voting completed event
+		}
+	}
+
+	return nil
+}
+
 func (r *Room) HandleEvent(member *Member, receivedEvent event.Event) error {
 	if event.IsIncomingEventTypeValid(receivedEvent.Type) {
 		eventHandler, ok := r.EventHandlers[event.EventType(receivedEvent.Type)]
@@ -154,4 +198,25 @@ func (r *Room) GetMembers() []*Member {
 	})
 
 	return members
+}
+
+func (r *Room) SaveTicketVote(member *Member, ticketID string, voteValue string) {
+	r.TicketVotesMapMutex.Lock()
+	defer r.TicketVotesMapMutex.Unlock()
+
+	r.TicketVotesMap[ticketID] = append(r.TicketVotesMap[ticketID], &Vote{
+		Value:      voteValue,
+		MemberID:   member.ID,
+		MemberName: member.Name,
+	})
+}
+
+func (r *Room) SaveAllMemberVotes(ticketID string) {
+	for _, vote := range r.TicketVotesMap[ticketID] {
+		r.MemberVoteMap[vote.MemberID] = &Vote{
+			Value:      vote.Value,
+			MemberID:   vote.MemberID,
+			MemberName: vote.MemberName,
+		}
+	}
 }
