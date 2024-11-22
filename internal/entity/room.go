@@ -31,6 +31,7 @@ func (r *Room) SetupEventHandlers() {
 	r.EventHandlers[event.EventJoinRoom] = r.JoinRoomEventHandler
 	r.EventHandlers[event.EventBeginVoting] = r.BeginVotingEventHandler
 	r.EventHandlers[event.EventMemberVoted] = r.MemberVotedEventHandler
+	r.EventHandlers[event.EventRevealVotes] = r.RevealVotesEventHandler
 }
 
 func (r *Room) JoinRoomEventHandler(member *Member, receivedEvent event.Event) error {
@@ -142,6 +143,39 @@ func (r *Room) MemberVotedEventHandler(member *Member, receivedEvent event.Event
 			memberInRoom.SendVotingCompletedEvent(messageToBeSentToNonAdminMember)
 		}
 	}
+
+	return nil
+}
+
+func (r *Room) RevealVotesEventHandler(member *Member, receivedEvent event.Event) error {
+	var revealVotesEventData event.RevealVotesEventData
+	err := json.Unmarshal(receivedEvent.Data, &revealVotesEventData)
+	if err != nil {
+		log.Println("unable to handle REVEAL_VOTES event")
+		return err
+	}
+
+	// event received to reveal votesm broadcast a message to all participants, including the admin,
+	// and reveal the votes for the given ticket ID
+	memberVotesMapInterface := make(map[string]interface{}, len(r.MemberVoteMap))
+	for memberID, vote := range r.MemberVoteMap {
+		memberVotesMapInterface[memberID] = vote
+	}
+
+	for _, memberInRoom := range r.GetMembers() {
+		if memberInRoom.IsRoomAdmin {
+			memberInRoom.SendVotesRevealedEvent(revealVotesEventData.TicketID, memberVotesMapInterface)
+
+			// send another prompt to the admin to enter the ticket id for the next vote
+			memberInRoom.SendBeginVotingPromptEvent("📝 Enter the ticket id for which you want to start voting next:")
+			continue
+		}
+		memberInRoom.SendVotesRevealedEvent(revealVotesEventData.TicketID, memberVotesMapInterface)
+		// TODO: send message to the member that they need to wait for the admin to begin voting for the next ticket
+	}
+
+	// delete the TicketID entry from the TicketVotesMap
+	delete(r.TicketVotesMap, revealVotesEventData.TicketID)
 
 	return nil
 }

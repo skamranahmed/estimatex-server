@@ -254,6 +254,19 @@ func (m *Member) SendRevealVotesPromptEvent(message string, ticketId string) {
 	m.sendEvent(eventToBeSent)
 }
 
+func (m *Member) SendVotesRevealedEvent(ticketId string, memberVoteMap map[string]interface{}) {
+	votesRevealedEvent := event.VotesRevealedEventData{
+		TicketID:            ticketId,
+		MemberVoteChoiceMap: memberVoteMap,
+	}
+	votesRevealedEventJsonData, _ := json.Marshal(votesRevealedEvent)
+	eventToBeSent := event.Event{
+		Type: string(event.EventVotesRevealed),
+		Data: json.RawMessage(votesRevealedEventJsonData),
+	}
+	m.sendEvent(eventToBeSent)
+}
+
 func (m *Member) sendEvent(eventToBeSent event.Event) {
 	jsonMessage, err := json.Marshal(eventToBeSent)
 	if err != nil {

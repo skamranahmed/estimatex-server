@@ -22,6 +22,7 @@ const (
 	EventJoinRoom    EventType = "JOIN_ROOM"
 	EventBeginVoting EventType = "BEGIN_VOTING"
 	EventMemberVoted EventType = "MEMBER_VOTED"
+	EventRevealVotes EventType = "REVEAL_VOTES"
 
 	// Outgoing Events
 	EventRoomJoinUpdates     EventType = "ROOM_JOIN_UPDATES"
@@ -30,6 +31,7 @@ const (
 	EventAskForVote          EventType = "ASK_FOR_VOTE"
 	EventVotingCompleted     EventType = "VOTING_COMPLETED"
 	EventRevealVotesPrompt   EventType = "REVEAL_VOTES_PROMPT"
+	EventVotesRevealed       EventType = "VOTES_REVEALED"
 
 	// Incoming + Outgoing Events
 	EventCreateRoom EventType = "CREATE_ROOM"
@@ -37,7 +39,7 @@ const (
 
 func IsIncomingEventTypeValid(input string) bool {
 	switch EventType(input) {
-	case EventCreateRoom, EventJoinRoom, EventBeginVoting, EventMemberVoted:
+	case EventCreateRoom, EventJoinRoom, EventBeginVoting, EventMemberVoted, EventRevealVotes:
 		return true
 	default:
 		return false
@@ -90,4 +92,15 @@ type VotingCompletedEventData struct {
 type RevealVotesPromptEventData struct {
 	TicketID string `json:"ticket_id"`
 	Message  string `json:"message"`
+}
+
+// RevealVotesEventData represents data specific to the "REVEAL_VOTES" event
+type RevealVotesEventData struct {
+	TicketID string `json:"ticket_id"`
+}
+
+// VotesRevealedEventData represents data specific to the "VOTES_REVEALED" event
+type VotesRevealedEventData struct {
+	TicketID            string                 `json:"ticket_id"`
+	MemberVoteChoiceMap map[string]interface{} `json:"client_vote_choice_map"`
 }
