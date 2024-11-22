@@ -110,6 +110,7 @@ func (m *Member) ReadMessages(room *Room, doneChannel chan bool) {
 			if err != nil {
 				log.Printf("Error unmarshalling the received event message from the client: %v", err)
 				// TODO: Think: do I need to return here or continue here?
+				// TODO: Think: if the error has happened with the admin, do I need to terminate the connection for other members too?
 				return
 			}
 
@@ -236,6 +237,19 @@ func (m *Member) SendVotingCompletedEvent(message string) {
 	eventToBeSent := event.Event{
 		Type: string(event.EventVotingCompleted),
 		Data: json.RawMessage(votingCompletedEventJsonData),
+	}
+	m.sendEvent(eventToBeSent)
+}
+
+func (m *Member) SendRevealVotesPromptEvent(message string, ticketId string) {
+	revealVotesPromptEvent := event.RevealVotesPromptEventData{
+		Message:  message,
+		TicketID: ticketId,
+	}
+	revealVotesPromptEventJsonData, _ := json.Marshal(revealVotesPromptEvent)
+	eventToBeSent := event.Event{
+		Type: string(event.EventRevealVotesPrompt),
+		Data: json.RawMessage(revealVotesPromptEventJsonData),
 	}
 	m.sendEvent(eventToBeSent)
 }

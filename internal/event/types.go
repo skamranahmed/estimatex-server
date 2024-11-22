@@ -29,6 +29,7 @@ const (
 	EventBeginVotingPrompt   EventType = "BEGIN_VOTING_PROMPT"
 	EventAskForVote          EventType = "ASK_FOR_VOTE"
 	EventVotingCompleted     EventType = "VOTING_COMPLETED"
+	EventRevealVotesPrompt   EventType = "REVEAL_VOTES_PROMPT"
 
 	// Incoming + Outgoing Events
 	EventCreateRoom EventType = "CREATE_ROOM"
@@ -81,6 +82,12 @@ type MemberVotedEventData struct {
 
 // VotingCompletedEventData represents data specific to the "VOTING_COMPLETED" event
 type VotingCompletedEventData struct {
+	TicketID string `json:"ticket_id"`
+	Message  string `json:"message"`
+}
+
+// RevealVotesPromptEventData represents data specific to the "REVEAL_VOTES_PROMPT" event
+type RevealVotesPromptEventData struct {
 	TicketID string `json:"ticket_id"`
 	Message  string `json:"message"`
 }

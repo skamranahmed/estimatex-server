@@ -135,7 +135,7 @@ func (r *Room) MemberVotedEventHandler(member *Member, receivedEvent event.Event
 			if memberInRoom.IsRoomAdmin {
 				messageToBeSentToAdminMember := fmt.Sprintf("✅ Voting has completed for the ticket id: %s\n> 👉 You will now be prompted for confirmation to reveal the votes.", memberVotedEventData.TicketID)
 				memberInRoom.SendVotingCompletedEvent(messageToBeSentToAdminMember)
-				// TODO: send reveal votes prompt event
+				memberInRoom.SendRevealVotesPromptEvent("", memberVotedEventData.TicketID)
 				continue
 			}
 			messageToBeSentToNonAdminMember := fmt.Sprintf("✅ Voting has completed for the ticket id: %s\n> ⏳ Waiting for the admin to reveal the votes.", memberVotedEventData.TicketID)
