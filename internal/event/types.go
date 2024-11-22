@@ -22,7 +22,9 @@ const (
 	EventJoinRoom EventType = "JOIN_ROOM"
 
 	// Outgoing Events
-	EventRoomJoinUpdates EventType = "ROOM_JOIN_UPDATES"
+	EventRoomJoinUpdates     EventType = "ROOM_JOIN_UPDATES"
+	EventRoomCapacityReached EventType = "ROOM_CAPACITY_REACHED"
+	EventBeginVotingPrompt   EventType = "BEGIN_VOTING_PROMPT"
 
 	// Incoming + Outgoing Events
 	EventCreateRoom EventType = "CREATE_ROOM"
@@ -44,5 +46,15 @@ type CreateRoomEventData struct {
 
 // RoomJoinUpdatesEventData represents data specific to the "ROOM_JOIN_UPDATES" event
 type RoomJoinUpdatesEventData struct {
+	Message string `json:"message"`
+}
+
+// RoomCapacityReachedEventData represents data specific to the "ROOM_CAPACITY_REACHED" event
+type RoomCapacityReachedEventData struct {
+	Message string `json:"message"`
+}
+
+// BeginVotingPromptEventData represents data specific to the "BEGIN_VOTING_PROMPT" event
+type BeginVotingPromptEventData struct {
 	Message string `json:"message"`
 }

@@ -70,7 +70,17 @@ func (r *Room) JoinRoomEventHandler(member *Member, receivedEvent event.Event) e
 		}
 	}
 
-	// TODO: when a room capacity is reached, the voting for the ticket needs to begin
+	// when a room's capacity is reached, the voting for the ticket needs to begin
+	if r.GetRoomMembersCount() == r.MaxCapacity {
+		for _, member := range alreadyPresentMembers {
+			if member.IsRoomAdmin {
+				member.SendRoomCapacityReachedEvent("🟢 Room capacity reached. You will now be prompted to begin voting.")
+				member.SendBeginVotingPromptEvent("📝 Enter the ticket id for which you want to start voting:")
+				continue
+			}
+			member.SendRoomCapacityReachedEvent("🟢 Room capacity reached. Waiting for the admin to begin voting.")
+		}
+	}
 
 	return nil
 }

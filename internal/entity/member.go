@@ -192,6 +192,30 @@ func (m *Member) SendRoomJoinUpdatesEvent(message string) {
 	m.sendEvent(eventToBeSent)
 }
 
+func (m *Member) SendRoomCapacityReachedEvent(message string) {
+	roomCapacityReachedEvent := event.RoomCapacityReachedEventData{
+		Message: message,
+	}
+	roomCapacityReachedEventJsonData, _ := json.Marshal(roomCapacityReachedEvent)
+	eventToBeSent := event.Event{
+		Type: string(event.EventRoomCapacityReached),
+		Data: json.RawMessage(roomCapacityReachedEventJsonData),
+	}
+	m.sendEvent(eventToBeSent)
+}
+
+func (m *Member) SendBeginVotingPromptEvent(message string) {
+	beginVotingPromptEvent := event.BeginVotingPromptEventData{
+		Message: message,
+	}
+	beginVotingPromptEventJsonData, _ := json.Marshal(beginVotingPromptEvent)
+	eventToBeSent := event.Event{
+		Type: string(event.EventBeginVotingPrompt),
+		Data: json.RawMessage(beginVotingPromptEventJsonData),
+	}
+	m.sendEvent(eventToBeSent)
+}
+
 func (m *Member) sendEvent(eventToBeSent event.Event) {
 	jsonMessage, err := json.Marshal(eventToBeSent)
 	if err != nil {
