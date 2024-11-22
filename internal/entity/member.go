@@ -180,6 +180,18 @@ func (m *Member) SendCreateRoomEvent(roomID string) {
 	m.sendEvent(eventToBeSent)
 }
 
+func (m *Member) SendRoomJoinUpdatesEvent(message string) {
+	roomJoinUpdatesEvent := event.RoomJoinUpdatesEventData{
+		Message: message,
+	}
+	roomJoinUpdatesEventJsonData, _ := json.Marshal(roomJoinUpdatesEvent)
+	eventToBeSent := event.Event{
+		Type: string(event.EventRoomJoinUpdates),
+		Data: json.RawMessage(roomJoinUpdatesEventJsonData),
+	}
+	m.sendEvent(eventToBeSent)
+}
+
 func (m *Member) sendEvent(eventToBeSent event.Event) {
 	jsonMessage, err := json.Marshal(eventToBeSent)
 	if err != nil {

@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"fmt"
 	"log"
 	"sync"
 
@@ -19,7 +20,59 @@ type Room struct {
 }
 
 func (r *Room) SetupEventHandlers() {
-	// TODO: setup event handler functions
+	r.EventHandlers[event.EventJoinRoom] = r.JoinRoomEventHandler
+}
+
+func (r *Room) JoinRoomEventHandler(member *Member, receivedEvent event.Event) error {
+	/*
+		When a member joins the room, the following things need to be done:
+
+		1. The member needs to be informed that they are now present inside the room which they intended to join
+
+		2. The member needs to be informed about the other members who are already present in the room
+
+		3. The member's name needs to be logged which would indicate that they have joined the room
+
+		4. The existing members need to be informed that a new member has joined the room
+	*/
+
+	// satisfies requirement 1
+	messageToBeSentToMember := fmt.Sprintf("🧠 You are now present in the room: %+v", r.ID)
+	member.SendRoomJoinUpdatesEvent(messageToBeSentToMember)
+
+	// satisfies requirement 2
+	alreadyPresentMembers := r.GetMembers()
+	for _, alreadyPresentMember := range alreadyPresentMembers {
+		if alreadyPresentMember.ID != member.ID {
+			messageToBeSentToMember := fmt.Sprintf("👤 %s joined", alreadyPresentMember.Name)
+
+			if alreadyPresentMember.IsRoomAdmin {
+				messageToBeSentToMember = fmt.Sprintf("👑👤 %s (ADMIN) joined", alreadyPresentMember.Name)
+			}
+
+			member.SendRoomJoinUpdatesEvent(messageToBeSentToMember)
+		}
+	}
+
+	// satisfies requirement 3
+	messageToBeSentToMember = fmt.Sprintf("👤 %s joined", member.Name)
+	if member.IsRoomAdmin {
+		messageToBeSentToMember = fmt.Sprintf("👑👤 %s (ADMIN) joined", member.Name)
+	}
+	member.SendRoomJoinUpdatesEvent(messageToBeSentToMember)
+
+	// satisfies requirement 4
+	for _, alreadyPresentMember := range alreadyPresentMembers {
+		if alreadyPresentMember.ID != member.ID {
+			// a member who joins a room later cannot be an admin, hence only a single message type is needed here
+			messageToBeSentToAlreadyPresentMember := fmt.Sprintf("👤 %s joined", member.Name)
+			alreadyPresentMember.SendRoomJoinUpdatesEvent(messageToBeSentToAlreadyPresentMember)
+		}
+	}
+
+	// TODO: when a room capacity is reached, the voting for the ticket needs to begin
+
+	return nil
 }
 
 func (r *Room) HandleEvent(member *Member, receivedEvent event.Event) error {
