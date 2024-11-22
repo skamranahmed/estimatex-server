@@ -2,6 +2,7 @@ package entity
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 
@@ -32,6 +33,26 @@ func NewMember(memberName string, memberWebSocketConnection *websocket.Conn, roo
 // ReadMessages: continuously reads messages from the WebSocket connection.
 // It is a blocking operation, hence it must be run as a go routine.
 func (m *Member) ReadMessages(room *Room, doneChannel chan bool) {
+	log.Println("Starting a go-routine to read messages from the client: ", m.Name)
+
+	defer func() {
+		// remove the member from the room
+		room.RemoveMember(m.ID)
+
+		// close the member's websocket connection
+		m.Connection.Close()
+
+		log.Printf("Read go-routine for client %s shutting down", m.Name)
+
+		select {
+		case <-doneChannel:
+			// doneChannel already closed, do nothing
+			return
+		default:
+			// the doneChannel is open, close it so that it can notify the writing go routine
+			close(doneChannel)
+		}
+	}()
 
 	// continuously read messages from the member's websocket connection
 	for {
@@ -50,12 +71,21 @@ func (m *Member) ReadMessages(room *Room, doneChannel chan bool) {
 					// respond to the client's close message
 					log.Printf("%+v initiated close for the room id: %+v\n", m.Name, m.RoomID)
 
-					// TODO:
-					// if the connection is closed by the room admin, then all other members also need to be removed from the room
+					// if the connection is closed by the room admin, then
+					// all other members also need to be removed from the room
 					// also, their connection has to be closed
+					if m.IsRoomAdmin {
+						log.Printf("Admin of room id: %+v, closed the connection. Disconnecting all the other members.", m.RoomID)
+						connectedMembers := room.GetMembers()
+						for _, connectedMember := range connectedMembers {
+							if connectedMember.ID != m.ID {
+								fmt.Printf("Closing connection for client: %+v\n", connectedMember.Name)
+								connectedMember.Connection.Close()
+							}
+						}
+					}
 
 					m.Connection.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Server closing connection"))
-					m.Connection.Close()
 					return
 				}
 

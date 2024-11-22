@@ -24,3 +24,21 @@ func (r *Room) GetRoomMembersCount() int {
 
 	return count
 }
+
+func (r *Room) RemoveMember(memberID string) {
+	r.Members.Delete(memberID)
+}
+
+func (r *Room) GetMembers() []*Member {
+	var members []*Member
+
+	r.Members.Range(func(key interface{}, value interface{}) bool {
+		member, ok := value.(*Member)
+		if ok {
+			members = append(members, member)
+		}
+		return true
+	})
+
+	return members
+}
