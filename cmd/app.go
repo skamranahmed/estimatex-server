@@ -11,5 +11,5 @@ func Run() error {
 	http.HandleFunc("/ws", controller.ServeWS)
 
 	log.Println("Server is running on port 8080")
-	return http.ListenAndServe("localhost:8080", nil)
+	return http.ListenAndServe(":8080", nil)
 }
